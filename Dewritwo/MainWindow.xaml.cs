@@ -20,6 +20,8 @@ using MahApps.Metro.Controls;
 using Crc32C;
 using MahApps.Metro.Controls.Dialogs;
 using System.Threading.Tasks;
+using System.Windows.Threading;
+using DoritoPatcher;
 using Newtonsoft.Json.Linq;
 
 namespace Dewritwo
@@ -91,33 +93,54 @@ namespace Dewritwo
                 return;
             }
 
-            VersionCheck();
-            
-            if (localEldoritoVersion == eldoritoLatestVersion)
+            if (VersionCheck())
             {
                 BTNSkip.Visibility = Visibility.Hidden;
                 BTNAction.Content = "Play Game";
                 AppendDebugLine(
                     "You have the latest version: " + eldoritoVersion.ProductVersion,
                     Color.FromRgb(0, 255, 0));
+
+                lblVersion.Content = "Your Version: " + localEldoritoVersion + "    Latest Version: " + eldoritoLatestVersion;
             }
             else
             {
                 validateThread = new Thread(BackgroundThread);
                 validateThread.Start();
-                AppendDebugLine(
-                    "You do not have the latest version.",
-                    Color.FromRgb(255, 255, 0));
+
+                if (localEldoritoVersion == null)
+                {
+                    AppendDebugLine(
+                        "Your version: Unknown",
+                        Color.FromRgb(255, 255, 0));
+
+                    AppendDebugLine(
+                        "Latest Version: " + eldoritoLatestVersion,
+                        Color.FromRgb(255, 255, 0));
+                    lblVersion.Content = "Your Version: Unknown" + "    Latest Version: " + eldoritoLatestVersion;
+                }
+                else
+                {
+                    lblVersion.Content = "Your Version: " + localEldoritoVersion + "    Latest Version: " + eldoritoLatestVersion;
+
+                    AppendDebugLine(
+                        "Your version: " + localEldoritoVersion,
+                        Color.FromRgb(255, 255, 0));
+
+                    AppendDebugLine(
+                        "Latest Version: " + eldoritoLatestVersion,
+                        Color.FromRgb(255, 255, 0));
+                }
+                
             }
         }
 
-        private void VersionCheck()
+        private bool VersionCheck()
         {
             if (File.Exists(Environment.CurrentDirectory + "\\mtndew.dll"))
             {
                 eldoritoVersion = FileVersionInfo.GetVersionInfo(Environment.CurrentDirectory + "\\mtndew.dll");
                 localEldoritoVersion = eldoritoVersion.ProductVersion;
-                SetVersionLabel(eldoritoVersion.ProductVersion);
             }
             else
             {
@@ -131,6 +154,11 @@ namespace Dewritwo
             {
                 eldoritoLatestVersion = pair.Key;
             }
+
+            if (localEldoritoVersion == eldoritoLatestVersion)
+                return true;
+            else
+                return false;
         }
 
         private void BackgroundThread()
@@ -173,18 +201,6 @@ namespace Dewritwo
                     {
                         BTNAction.Content = "Update";
                     }));
-        }
-
-        private void SetVersionLabel(string version)
-        {
-            if (lblVersion.Dispatcher.CheckAccess())
-            {
-                lblVersion.Content = "Current Version: " + version;
-            }
-            else
-            {
-                lblVersion.Dispatcher.Invoke(new Action(() => SetVersionLabel(version)));
-            }
         }
 
         private bool ProcessUpdateData()
@@ -306,8 +322,6 @@ namespace Dewritwo
                         filesToDownload.Add(name);
                     }
                 }
-
-                SetVersionLabel(latestUpdateVersion);
 
                 return true;
             }
@@ -557,10 +571,12 @@ namespace Dewritwo
                 foreach (var file in filesToDownload)
                 {
                     AppendDebugLine("Downloading file \"" + file + "\"...", Color.FromRgb(255, 255, 0));
-                    var url = latestUpdate["baseUrl"].ToString().Replace("\"", "") + file;
+                    var url = "https://dew.halo.click/update_server/" + eldoritoLatestVersion + "/" + file;
                     var destPath = Path.Combine(BasePath, file);
                     var dialog = new FileDownloadDialog(this, url, destPath);
                     var result = dialog.ShowDialog();
+                    //Update(destPath, url, file);
+
                     if (result.HasValue && result.Value)
                     {
                         // TOD: Refactor this. It's hacky
