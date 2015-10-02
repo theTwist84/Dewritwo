@@ -4,9 +4,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -19,12 +21,41 @@ using MahApps.Metro.Controls;
 using Crc32C;
 using MahApps.Metro.Controls.Dialogs;
 using System.Threading.Tasks;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using Newtonsoft.Json.Linq;
 
 namespace Dewritwo
 {
     public partial class MainWindow
     {
+
+        #region Variables/Dictionaries
+        private Dictionary<int, string> doritoKey;
+        private bool updateText = true;
+        private string keyValue;
+        private string bindDelete;
+
+
+        private readonly SHA1 hasher = SHA1.Create();
+        private readonly string[] skipFileExtensions = { ".bik" };
+        private readonly string[] skipFiles =
+        {
+            "eldorado.exe", "game.cfg", "tags.dat", "binkw32.dll",
+            "crash_reporter.exe", "game.cfg_local.cfg"
+        };
+        private readonly string[] skipFolders = { ".inn.meta.dir", ".inn.tmp.dir", "Frost", "tpi", "bink", "logs" };
+        public string BasePath = Directory.GetCurrentDirectory();
+        private Dictionary<string, string> fileHashes;
+        private List<string> filesToDownload;
+        private bool isPlayEnabled;
+        private JToken latestUpdate;
+        private string latestUpdateVersion;
+        private JObject settingsJson;
+        private JObject updateJson;
+        private Thread validateThread;
+        #endregion
+
         #region Main
         public MainWindow()
         {
@@ -41,8 +72,31 @@ namespace Dewritwo
                 AppendDebugLine("Cfg Load Error: Resetting Launcher Specific Settings", Color.FromRgb(255, 0, 0));
                 Cfg.Initial(true);
                 Load();
+
                 AppendDebugLine("Cfg Reload Complete", Color.FromRgb(0, 255, 0));
             }
+
+            try
+            {
+                settingsJson = JObject.Parse(File.ReadAllText("dewrito.json"));
+                if (settingsJson["gameFiles"] == null || settingsJson["updateServiceUrl"] == null)
+                {
+                    AppendDebugLine("Error reading dewrito.json: gameFiles or updateServiceUrl is missing.",
+                        Color.FromRgb(255, 0, 0));
+                    return;
+                }
+            }
+            catch
+            {
+                AppendDebugLine("Failed to read dewrito.json updater configuration.", Color.FromRgb(255, 0, 0));
+                return;
+            }
+
+            // CreateHashJson();
+            validateThread = new Thread(BackgroundThread);
+            validateThread.Start();
+
+            /*
             try
             {
                 InitialHash();
@@ -52,7 +106,196 @@ namespace Dewritwo
                 AppendDebugLine("Files not found. Make sure this exe is in your install folder", Color.FromRgb(255, 0, 0));
                 BTNAction.Content = "Error";
             }
+            */
         }
+
+        private void BackgroundThread()
+        {
+            if (!CompareHashesWithJson())
+            {
+                return;
+            }
+
+            AppendDebugLine("Game files validated, contacting update server...", Color.FromRgb(255, 255, 255));
+
+            if (!ProcessUpdateData())
+            {
+                var confirm = false;
+
+                AppendDebugLine(
+                    "Failed to retrieve update information from set update server: " + settingsJson["updateServiceUrl"],
+                    Color.FromRgb(255, 0, 0));
+            }
+
+            if (filesToDownload.Count <= 0)
+            {
+                AppendDebugLine("You have the latest version! (" + latestUpdateVersion + ")", Color.FromRgb(0, 255, 0));
+
+                BTNAction.Dispatcher.Invoke(
+                    new Action(
+                        () =>
+                        {
+                            BTNAction.Content = "Play Game";
+                        }));
+                return;
+            }
+
+            AppendDebugLine("An update is available. (" + latestUpdateVersion + ")", Color.FromRgb(255, 255, 0));
+
+            BTNAction.Dispatcher.Invoke(
+                new Action(
+                    () =>
+                    {
+                        BTNAction.Content = "Update";
+                    }));
+        }
+
+        private void SetVersionLabel(string version)
+        {
+            if (lblVersion.Dispatcher.CheckAccess())
+            {
+                lblVersion.Content = "Current Version: " + version;
+            }
+            else
+            {
+                lblVersion.Dispatcher.Invoke(new Action(() => SetVersionLabel(version)));
+            }
+        }
+
+        private bool ProcessUpdateData()
+        {
+            try
+            {
+                var updateData = settingsJson["updateServiceUrl"].ToString().Replace("\"", "");
+                if (updateData.StartsWith("http"))
+                {
+                    using (var wc = new WebClient())
+                    {
+                        try
+                        {
+                            updateData = wc.DownloadString(updateData);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    if (!File.Exists(updateData))
+                        return false;
+
+                    updateData = File.ReadAllText(updateData);
+                }
+
+                updateJson = JObject.Parse(updateData);
+
+                latestUpdate = null;
+                foreach (var x in updateJson)
+                {
+                    if (x.Value["releaseNo"] == null || x.Value["gitRevision"] == null ||
+                        x.Value["baseUrl"] == null || x.Value["files"] == null)
+                    {
+                        return false; // invalid update data
+                    }
+
+                    if (latestUpdate == null ||
+                        int.Parse(x.Value["releaseNo"].ToString().Replace("\"", "")) >
+                        int.Parse(latestUpdate["releaseNo"].ToString().Replace("\"", "")))
+                    {
+                        latestUpdate = x.Value;
+                        latestUpdateVersion = x.Key + "-" + latestUpdate["gitRevision"].ToString().Replace("\"", "");
+                    }
+                }
+
+                if (latestUpdate == null)
+                    return false;
+
+                var patchFiles = new List<string>();
+                foreach (var file in latestUpdate["patchFiles"])
+                // each file mentioned here must match original hash or have a file in the _dewbackup folder that does
+                {
+                    var fileName = (string)file;
+                    var fileHash = (string)settingsJson["gameFiles"][fileName];
+                    if (!fileHashes.ContainsKey(fileName) &&
+                        !fileHashes.ContainsKey(Path.Combine("_dewbackup", fileName)))
+                    {
+                        AppendDebugLine("Original file data for file \"" + fileName + "\" not found.",
+                            Color.FromRgb(255, 0, 0));
+                        AppendDebugLine("Please redo your Halo Online installation with the original HO files.",
+                            Color.FromRgb(255, 0, 0), false);
+                        return false;
+                    }
+
+                    if (fileHashes.ContainsKey(fileName)) // we have the file
+                    {
+                        if (fileHashes[fileName] != fileHash &&
+                            (!fileHashes.ContainsKey(Path.Combine("_dewbackup", fileName)) ||
+                             fileHashes[Path.Combine("_dewbackup", fileName)] != fileHash))
+                        {
+                            AppendDebugLine(
+                                "File \"" + fileName +
+                                "\" was found but isn't original, and a valid backup of the original data wasn't found.",
+                                Color.FromRgb(255, 0, 0));
+                            AppendDebugLine("Please redo your Halo Online installation with the original HO files.",
+                                Color.FromRgb(255, 0, 0), false);
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        // we don't have the file
+                        if (!fileHashes.ContainsKey(fileName + ".orig") &&
+                            (!fileHashes.ContainsKey(Path.Combine("_dewbackup", fileName)) ||
+                             fileHashes[Path.Combine("_dewbackup", fileName)] != fileHash))
+                        {
+                            AppendDebugLine("Original file data for file \"" + fileName + "\" not found.",
+                                Color.FromRgb(255, 0, 0));
+                            AppendDebugLine("Please redo your Halo Online installation with the original HO files.",
+                                Color.FromRgb(255, 0, 0), false);
+                            return false;
+                        }
+                    }
+
+                    patchFiles.Add(fileName);
+                }
+
+                IDictionary<string, JToken> files = (JObject)latestUpdate["files"];
+
+                filesToDownload = new List<string>();
+                foreach (var x in files)
+                {
+                    var keyName = x.Key;
+                    if (!fileHashes.ContainsKey(keyName) && fileHashes.ContainsKey(keyName.Replace(@"\", @"/")))
+                        // linux system maybe?
+                        keyName = keyName.Replace(@"\", @"/");
+
+                    if (!fileHashes.ContainsKey(keyName) || fileHashes[keyName] != x.Value.ToString().Replace("\"", ""))
+                    {
+                        AppendDebugLine("File \"" + keyName + "\" is missing or a newer version was found.",
+                            Color.FromRgb(255, 0, 0));
+                        var name = x.Key;
+                        if (patchFiles.Contains(keyName))
+                            name += ".bspatch";
+                        filesToDownload.Add(name);
+                    }
+                }
+
+                SetVersionLabel(latestUpdateVersion);
+
+                return true;
+            }
+            catch (WebException)
+            {
+                return false;
+            }
+            catch (NullReferenceException)
+            {
+                return false;
+            }
+        }
+
         private void InitialHash()
         {
             var watch = Stopwatch.StartNew();
@@ -88,13 +331,109 @@ namespace Dewritwo
             }
         }
 
-        #endregion
+        private bool CompareHashesWithJson()
+        {
+            if (fileHashes == null)
+                HashFilesInFolder(BasePath);
 
-        #region Variables/Dictionaries
-        private Dictionary<int, string> doritoKey;
-        private bool updateText = true;
-        private string keyValue;
-        private string bindDelete;
+            IDictionary<string, JToken> files = (JObject)settingsJson["gameFiles"];
+
+            foreach (var x in files)
+            {
+                var keyName = x.Key;
+                if (!fileHashes.ContainsKey(keyName) && fileHashes.ContainsKey(keyName.Replace(@"\", @"/")))
+                    // linux system maybe?
+                    keyName = keyName.Replace(@"\", @"/");
+
+                if (!fileHashes.ContainsKey(keyName))
+                {
+                    if (skipFileExtensions.Contains(Path.GetExtension(keyName)))
+                        continue;
+
+                    AppendDebugLine("Failed to find required game file \"" + x.Key + "\"", Color.FromRgb(255, 0, 0));
+                    AppendDebugLine("Please redo your Halo Online installation with the original HO files.",
+                        Color.FromRgb(255, 0, 0), false);
+
+                    return false;
+                }
+
+                if (fileHashes[keyName] != x.Value.ToString().Replace("\"", ""))
+                {
+                    if (skipFileExtensions.Contains(Path.GetExtension(keyName)) ||
+                        skipFiles.Contains(Path.GetFileName(keyName)))
+                        continue;
+
+                    AppendDebugLine("Game file \"" + keyName + "\" data is invalid.", Color.FromRgb(255, 0, 0));
+                    AppendDebugLine("Your hash: " + fileHashes[keyName], Color.FromRgb(255, 0, 0), false);
+                    AppendDebugLine("Expected hash: " + x.Value.ToString().Replace("\"", ""), Color.FromRgb(255, 0, 0),
+                        false);
+                    AppendDebugLine("Please redo your Halo Online installation with the original HO files.",
+                        Color.FromRgb(255, 0, 0), false);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void CreateHashJson()
+        {
+            if (fileHashes == null)
+                HashFilesInFolder(BasePath);
+
+            var builder = new StringBuilder();
+            builder.AppendLine("{");
+            foreach (var kvp in fileHashes)
+            {
+                builder.AppendLine(String.Format("    \"{0}\": \"{1}\",", kvp.Key.Replace(@"\", @"\\"), kvp.Value));
+            }
+            builder.AppendLine("}");
+            var json = builder.ToString();
+
+            AppendDebugLine(json, Color.FromRgb(255, 255, 0));
+        }
+
+        private void HashFilesInFolder(string basePath, string dirPath = "")
+        {
+            if (fileHashes == null)
+                fileHashes = new Dictionary<string, string>();
+
+            if (String.IsNullOrEmpty(dirPath))
+            {
+                dirPath = basePath;
+                AppendDebugLine("Validating game files...", Color.FromRgb(255, 255, 255));
+            }
+
+            foreach (var folder in Directory.GetDirectories(dirPath))
+            {
+                var dirName = Path.GetFileName(folder);
+                if (skipFolders.Contains(dirName))
+                    continue;
+                HashFilesInFolder(basePath, folder);
+            }
+
+            foreach (var file in Directory.GetFiles(dirPath))
+            {
+                try
+                {
+                    using (var stream = File.OpenRead(file))
+                    {
+                        var hash = hasher.ComputeHash(stream);
+                        var hashStr = BitConverter.ToString(hash).Replace("-", "");
+
+                        var fileKey = file.Replace(basePath, "");
+                        if ((fileKey.StartsWith(@"\") || fileKey.StartsWith("/")) && fileKey.Length > 1)
+                            fileKey = fileKey.Substring(1);
+                        if (!fileHashes.ContainsKey(fileKey))
+                            fileHashes.Add(fileKey, hashStr);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
         #endregion
 
         #region Flyout Controls
@@ -180,8 +519,6 @@ namespace Dewritwo
             startInfo.FileName = "eldorado.exe";
             startInfo.Arguments = "-launcher";
 
-            
-
             if (BTNAction.Content == "Play Game")
             {
                 Process.Start(startInfo);
@@ -192,7 +529,40 @@ namespace Dewritwo
             }
             else if (BTNAction.Content == "Update")
             {
-                Update();
+                foreach (var file in filesToDownload)
+                {
+                    AppendDebugLine("Downloading file \"" + file + "\"...", Color.FromRgb(255, 255, 0));
+                    var url = latestUpdate["baseUrl"].ToString().Replace("\"", "") + file;
+                    var destPath = Path.Combine(BasePath, file);
+                    var dialog = new FileDownloadDialog(this, url, destPath);
+                    var result = dialog.ShowDialog();
+                    if (result.HasValue && result.Value)
+                    {
+                        // TOD: Refactor this. It's hacky
+                    }
+                    else
+                    {
+                        AppendDebugLine("Download for file \"" + file + "\" failed.", Color.FromRgb(255, 0, 0));
+                        AppendDebugLine("Error: " + dialog.Error.Message, Color.FromRgb(255, 0, 0), false);
+                        BTNAction.Content = "Error";
+                        if (dialog.Error.InnerException != null)
+                            AppendDebugLine("Error: " + dialog.Error.InnerException.Message, Color.FromRgb(255, 0, 0),
+                                false);
+                        return;
+                    }
+                }
+
+                if (filesToDownload.Contains("DewritoUpdater.exe"))
+                {
+                    var RestartWindow = new MsgBoxRestart("Update complete! Please restart the launcher.");
+
+                    RestartWindow.Show();
+                    RestartWindow.Focus();
+                }
+
+                BTNAction.Content = "Play Game";
+                AppendDebugLine("Update successful. You have the latest version! (" + latestUpdateVersion + ")",
+                    Color.FromRgb(0, 255, 0));
             }
         }
 
