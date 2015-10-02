@@ -14,15 +14,12 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Dewritwo.Resources;
 using MahApps.Metro;
 using MahApps.Metro.Controls;
 using Crc32C;
 using MahApps.Metro.Controls.Dialogs;
 using System.Threading.Tasks;
-using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using Newtonsoft.Json.Linq;
 
 namespace Dewritwo
@@ -35,7 +32,9 @@ namespace Dewritwo
         private bool updateText = true;
         private string keyValue;
         private string bindDelete;
-
+        private string eldoritoLatestVersion;
+        private FileVersionInfo eldoritoVersion = null;
+        private string localEldoritoVersion;
 
         private readonly SHA1 hasher = SHA1.Create();
         private readonly string[] skipFileExtensions = { ".bik" };
@@ -92,21 +91,46 @@ namespace Dewritwo
                 return;
             }
 
-            // CreateHashJson();
-            validateThread = new Thread(BackgroundThread);
-            validateThread.Start();
+            VersionCheck();
+            
+            if (localEldoritoVersion == eldoritoLatestVersion)
+            {
+                BTNSkip.Visibility = Visibility.Hidden;
+                BTNAction.Content = "Play Game";
+                AppendDebugLine(
+                    "You have the latest version: " + eldoritoVersion.ProductVersion,
+                    Color.FromRgb(0, 255, 0));
+            }
+            else
+            {
+                validateThread = new Thread(BackgroundThread);
+                validateThread.Start();
+                AppendDebugLine(
+                    "You do not have the latest version.",
+                    Color.FromRgb(255, 255, 0));
+            }
+        }
 
-            /*
-            try
+        private void VersionCheck()
+        {
+            if (File.Exists(Environment.CurrentDirectory + "\\mtndew.dll"))
             {
-                InitialHash();
+                eldoritoVersion = FileVersionInfo.GetVersionInfo(Environment.CurrentDirectory + "\\mtndew.dll");
+                localEldoritoVersion = eldoritoVersion.ProductVersion;
+                SetVersionLabel(eldoritoVersion.ProductVersion);
             }
-            catch
+            else
             {
-                AppendDebugLine("Files not found. Make sure this exe is in your install folder", Color.FromRgb(255, 0, 0));
-                BTNAction.Content = "Error";
+                eldoritoVersion = null;
             }
-            */
+
+            WebClient c = new WebClient();
+            var data = c.DownloadString("https://dew.halo.click/update_server/update.json");
+            JObject o = JObject.Parse(data);
+            foreach (var pair in o)
+            {
+                eldoritoLatestVersion = pair.Key;
+            }
         }
 
         private void BackgroundThread()
@@ -136,6 +160,7 @@ namespace Dewritwo
                         () =>
                         {
                             BTNAction.Content = "Play Game";
+                            BTNSkip.Visibility = Visibility.Hidden;
                         }));
                 return;
             }
@@ -561,36 +586,16 @@ namespace Dewritwo
                 }
 
                 BTNAction.Content = "Play Game";
+                BTNSkip.Visibility = Visibility.Hidden;
                 AppendDebugLine("Update successful. You have the latest version! (" + latestUpdateVersion + ")",
                     Color.FromRgb(0, 255, 0));
             }
         }
 
-        private async void Update()
+        private void BTNSkip_OnClick(object sender, RoutedEventArgs e)
         {
-
-            var controller = await this.ShowProgressAsync("Updating to 0.4.9.1", "Downloading: ");
-
-            var i = 0.0;
-            while (i < 35.0)
-            {
-                await Task.Delay(100);
-
-                if (i > 1)
-                    controller.SetMessage("Downloading: tags.dat");
-                if (i > 10)
-                    controller.SetMessage("Downloading: halo3.zip");
-                if (i > 20)
-                    controller.SetMessage("Downloading: dewritoupdater.exe");
-                if (i > 25)
-                    controller.SetMessage("Update Complete");
-
-                if (controller.IsCanceled)
-                    break; //canceled progressdialog auto closes.
-                i += 1.0;
-            }
-            await controller.CloseAsync();
             BTNAction.Content = "Play Game";
+            BTNSkip.Visibility = Visibility.Hidden;
         }
 
         private void Reddit_OnClick(object sender, RoutedEventArgs e)
