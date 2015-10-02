@@ -1,5 +1,4 @@
-# Dewritwo
-###THIS DOES NOT UPDATE EVERYTHING WORKS EXCEPT FOR UPDATING DO NOT USE THIS TO UPDATE
+# Dewritwo AKA DewritoUpdater 2.0
 
 A Complete recode of the original ElDewrito launcher with insane performance increases and clean theme.
 
