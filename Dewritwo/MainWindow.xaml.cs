@@ -504,6 +504,7 @@ namespace Dewritwo
         {
             Flyout.IsOpen = true;
             SettingsGrid.Visibility = Visibility.Hidden;
+            ChangelogGrid.Visibility = Visibility.Hidden;
             CustomGrid.Visibility = Visibility.Hidden;
             VOIPSettingsGrid.Visibility = Visibility.Hidden;
             AutoExecGrid.Visibility = Visibility.Hidden;
@@ -539,6 +540,23 @@ namespace Dewritwo
         private void Custom_Click(object sender, RoutedEventArgs e)
         {
             FlyoutHandler(CustomGrid, "Player Customization");
+        }
+
+        private void Changelog_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (ChangelogGrid.Visibility == Visibility.Visible && Flyout.IsOpen)
+            {
+                Flyout.IsOpen = false;
+            }
+            else if (ChangelogGrid.Visibility == Visibility.Hidden)
+            {
+                Flyout.IsOpen = false;
+                FlyoutHandler(ChangelogGrid, "Changelog");
+            }
+            else
+            {
+                FlyoutHandler(ChangelogGrid, "Changelog");
+            }
         }
 
         private void Settings_Click(object sender, RoutedEventArgs e)

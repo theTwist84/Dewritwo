@@ -17,6 +17,14 @@
                     </Rectangle.OpacityMask>
                 </Rectangle>
             </Button>
+            <Button ToolTip="Changelog" Click="Changelog_OnClick">
+                <Rectangle Width="15" Height="15" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}">
+                    <Rectangle.OpacityMask>
+                        <VisualBrush Stretch="Uniform"
+                                     Visual="{StaticResource appbar_book_list}" />
+                    </Rectangle.OpacityMask>
+                </Rectangle>
+            </Button>
             <Button ToolTip="Launcher Settings" Click="LauncherSettings_Click">
                 <Rectangle Width="15" Height="15" Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}">
                     <Rectangle.OpacityMask>
@@ -315,20 +323,20 @@
                         </StackPanel>
                     </Grid>
                     <Grid x:Name="DebugGrid" Margin="10,0,10,10" Visibility="Hidden">
-                        <RichTextBox x:Name="DebugLogger" IsReadOnly="True"
-                                     VerticalScrollBarVisibility="Auto" Padding="5,5,5,0">
+                        <RichTextBox x:Name="DebugLogger" IsReadOnly="True" BorderThickness="0"
+                                     VerticalScrollBarVisibility="Auto" Padding="5,5,5,0" Margin="0,0,0,40">
                             <FlowDocument />
                         </RichTextBox>
                         <Button Style="{StaticResource AccentedSquareButtonStyle}" Click="forceUpdate_Click"
                             Content="Force Update" Controls:ButtonHelper.PreserveTextCase="True" Height="32" Width="100"
-                            Margin="0,0,10,10" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            Margin="0,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                             HorizontalAlignment="Right" VerticalAlignment="Bottom" BorderBrush="{x:Null}" />
                     </Grid>
                     <Grid x:Name="ChangelogGrid" Margin="10,0,10,10" Visibility="Hidden">
-                        <TextBox x:Name="ChangelogContent" Margin="0" Background="Transparent" Foreground="White"
+                        <TextBox x:Name="ChangelogContent" Margin="0"
                                  BorderThickness="0" IsReadOnly="True" TextWrapping="WrapWithOverflow"
                                  VerticalScrollBarVisibility="Auto" AcceptsReturn="True" Text="Loading..."
-                                 FontFamily="/Resources/#Aero Matics Light" FontSize="16" Padding="20" />
+                                 FontSize="12" Padding="20" />
                     </Grid>
                 </Grid>
             </Controls:Flyout>
@@ -343,7 +351,7 @@
         </Grid.ColumnDefinitions>
         <!-- Left Side -->
         <!--This file is NOT compatible with Silverlight-->
-        <Viewbox xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Width="300" VerticalAlignment="Top" Margin="0,60,0,0" Stretch="None">
+        <Viewbox xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Width="300" VerticalAlignment="Top" Margin="0,100,0,0" Stretch="None">
             <Canvas Name="Layer_1" Width="258.84" Height="225.01" Canvas.Left="0" Canvas.Top="0">
                 <Canvas.RenderTransform>
                     <TranslateTransform X="0" Y="0"/>
@@ -393,12 +401,12 @@
             </Canvas>
         </Viewbox>
 
-        <Label x:Name="Title" Content="ELDEWRITO" Grid.Column="0" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,100,0,0" FontSize="40" FontFamily="Lato Semibold" />
+        <Label x:Name="Title" Content="ELDEWRITO" Grid.Column="0" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,150,0,0" FontSize="40" FontFamily="Lato Semibold" />
         <Button Style="{StaticResource AccentedSquareButtonStyle}" x:Name="BTNSkip" Content="Skip" Click="BTNSkip_OnClick" Controls:ButtonHelper.PreserveTextCase="True" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="20,0,0,100" Height="40" Width="100" BorderBrush="{x:Null}" FontSize="16" />
 
         <StackPanel Orientation="Horizontal" Height="50" VerticalAlignment="Bottom" Margin="20,20,20,40">
             <Button Style="{StaticResource AccentedSquareButtonStyle}" x:Name="BTNAction" Content="Validating" Click="Action_OnClick" Controls:ButtonHelper.PreserveTextCase="True" Height="50" Width="150" BorderBrush="{x:Null}" FontSize="16" />
-            <Rectangle x:Name="Reddit" Width="30" Height="30" Margin="30,0,0,0" MouseDown="Reddit_OnClick">
+            <Rectangle x:Name="Reddit" Width="30" Height="30" Margin="30,0,0,0" MouseDown="Reddit_OnClick" ToolTip="Halo Online Subreddit">
                 <Rectangle.OpacityMask>
                     <VisualBrush Stretch="Uniform" Visual="{StaticResource appbar_social_reddit}" />
                 </Rectangle.OpacityMask>
@@ -413,7 +421,7 @@
                     </Style>
                 </Rectangle.Style>
             </Rectangle>
-            <Rectangle x:Name="Github" Width="30" Height="30" Margin="30,0,0,0" MouseDown="Github_OnClick">
+            <Rectangle x:Name="Github" Width="30" Height="30" Margin="30,0,0,0" MouseDown="Github_OnClick" ToolTip="Launcher Github">
                 <Rectangle.OpacityMask>
                     <VisualBrush Stretch="Uniform" Visual="{StaticResource appbar_social_github_octocat_solid}" />
                 </Rectangle.OpacityMask>
@@ -428,7 +436,7 @@
                     </Style>
                 </Rectangle.Style>
             </Rectangle>
-            <Rectangle x:Name="Twitter" Width="30" Height="30" Margin="30,0,0,0" MouseDown="Twitter_OnClick">
+            <Rectangle x:Name="Twitter" Width="30" Height="30" Margin="30,0,0,0" MouseDown="Twitter_OnClick" ToolTip="Launcher Dev Twitter">
                 <Rectangle.OpacityMask>
                     <VisualBrush Stretch="Uniform"
                                      Visual="{StaticResource appbar_twitter_bird}" />
