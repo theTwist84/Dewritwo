@@ -34,6 +34,11 @@
         <ObjectDataProvider x:Key="Action" ObjectType="{x:Type local:Dictionaries}" MethodName="GetAction" />
         <ObjectDataProvider x:Key="Command" ObjectType="{x:Type local:Dictionaries}" MethodName="GetCommand" />
         <ObjectDataProvider x:Key="CommandLine" ObjectType="{x:Type local:Dictionaries}" MethodName="GetCommandLine" />
+        <Storyboard x:Key="fade" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="BTNAction"
+                             Storyboard.TargetProperty="Opacity" From="0.20" To="1"
+                             Duration="0:0:1" BeginTime="0:0:0" AutoReverse="True" />
+        </Storyboard>
     </Controls:MetroWindow.Resources>
     <Controls:MetroWindow.Flyouts>
         <Controls:FlyoutsControl>
@@ -314,6 +319,16 @@
                                      VerticalScrollBarVisibility="Auto" Padding="5,5,5,0">
                             <FlowDocument />
                         </RichTextBox>
+                        <Button Style="{StaticResource AccentedSquareButtonStyle}" Click="forceUpdate_Click"
+                            Content="Force Update" Controls:ButtonHelper.PreserveTextCase="True" Height="32" Width="100"
+                            Margin="0,0,10,10" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" BorderBrush="{x:Null}" />
+                    </Grid>
+                    <Grid x:Name="ChangelogGrid" Margin="10,0,10,10" Visibility="Hidden">
+                        <TextBox x:Name="ChangelogContent" Margin="0" Background="Transparent" Foreground="White"
+                                 BorderThickness="0" IsReadOnly="True" TextWrapping="WrapWithOverflow"
+                                 VerticalScrollBarVisibility="Auto" AcceptsReturn="True" Text="Loading..."
+                                 FontFamily="/Resources/#Aero Matics Light" FontSize="16" Padding="20" />
                     </Grid>
                 </Grid>
             </Controls:Flyout>
@@ -328,7 +343,7 @@
         </Grid.ColumnDefinitions>
         <!-- Left Side -->
         <!--This file is NOT compatible with Silverlight-->
-        <Viewbox xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Width="300" VerticalAlignment="Top" Margin="0,90,0,0" Stretch="None">
+        <Viewbox xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Width="300" VerticalAlignment="Top" Margin="0,60,0,0" Stretch="None">
             <Canvas Name="Layer_1" Width="258.84" Height="225.01" Canvas.Left="0" Canvas.Top="0">
                 <Canvas.RenderTransform>
                     <TranslateTransform X="0" Y="0"/>
@@ -378,7 +393,7 @@
             </Canvas>
         </Viewbox>
 
-        <Label x:Name="Title" Content="ELDEWRITO" Grid.Column="0" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,160,0,0" FontSize="40" FontFamily="Lato Semibold" />
+        <Label x:Name="Title" Content="ELDEWRITO" Grid.Column="0" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,100,0,0" FontSize="40" FontFamily="Lato Semibold" />
         <Button Style="{StaticResource AccentedSquareButtonStyle}" x:Name="BTNSkip" Content="Skip" Click="BTNSkip_OnClick" Controls:ButtonHelper.PreserveTextCase="True" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="20,0,0,100" Height="40" Width="100" BorderBrush="{x:Null}" FontSize="16" />
 
         <StackPanel Orientation="Horizontal" Height="50" VerticalAlignment="Bottom" Margin="20,20,20,40">
@@ -430,8 +445,10 @@
                 </Rectangle.Style>
             </Rectangle>
         </StackPanel>
-        <Label x:Name="lblVersion" VerticalContentAlignment="Bottom" Content="Current Version: Validating" Height="30" VerticalAlignment="Bottom" Margin="16,20,20,10" Foreground="{DynamicResource AccentColorBrush}" FontWeight="Bold" FontSize="12"/>
-        <!-- Main Buttons -->
+        <Label x:Name="lblVersion" Content="Current Version: Validating" Controls:ButtonHelper.PreserveTextCase="True"
+                FontWeight="Bold" FontSize="12" Height="30" Foreground="{DynamicResource AccentColorBrush}"
+                VerticalAlignment="Bottom" Margin="16,20,45,5" Width="Auto" HorizontalContentAlignment="Left" BorderBrush="{x:Null}" Background="{x:Null}" />
+            <!-- Main Buttons -->
         <Grid Grid.Column="1">
             <Controls:Tile Width="Auto" Height="125" Margin="0,20,20,0" VerticalAlignment="Top" ToolTip="Customize Your Spartan and Username"
                            Title="Player Customization" CountFontSize="18" Click="Custom_Click" Foreground="{DynamicResource IdealForegroundColorBrush}">

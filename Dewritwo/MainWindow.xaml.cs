@@ -20,6 +20,7 @@ using MahApps.Metro.Controls;
 using Crc32C;
 using MahApps.Metro.Controls.Dialogs;
 using System.Threading.Tasks;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using DoritoPatcher;
 using Newtonsoft.Json.Linq;
@@ -93,10 +94,28 @@ namespace Dewritwo
                 return;
             }
 
+            var fade = (Storyboard)TryFindResource("fade");
+            fade.Begin(); // Start animation
+
+            using (var wc = new WebClient())
+            {
+                try
+                {
+                    ChangelogContent.Text = wc.DownloadString("http://dew.halo.click/honline/changelog.data");
+                }
+                catch
+                {
+                    ChangelogContent.Text = "You are offline. No changelog available.";
+                }
+            }
+
             if (VersionCheck())
             {
                 BTNSkip.Visibility = Visibility.Hidden;
                 BTNAction.Content = "Play Game";
+
+                fade.Stop(); // Start animation
+
                 AppendDebugLine(
                     "You have the latest version: " + eldoritoVersion.ProductVersion,
                     Color.FromRgb(0, 255, 0));
@@ -189,6 +208,8 @@ namespace Dewritwo
                         {
                             BTNAction.Content = "Play Game";
                             BTNSkip.Visibility = Visibility.Hidden;
+                            var fade = (Storyboard)TryFindResource("fade");
+                            fade.Stop(); // Start animation
                         }));
                 return;
             }
@@ -200,6 +221,8 @@ namespace Dewritwo
                     () =>
                     {
                         BTNAction.Content = "Update";
+                        var fade = (Storyboard)TryFindResource("fade");
+                        fade.Stop(); // Start animation
                     }));
         }
 
@@ -505,6 +528,12 @@ namespace Dewritwo
             {
                 FlyoutHandler(LauncherSettingsGrid, "Launcher Settings");
             }
+        }
+
+        private void forceUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            validateThread = new Thread(BackgroundThread);
+            validateThread.Start();
         }
 
         private void Custom_Click(object sender, RoutedEventArgs e)
