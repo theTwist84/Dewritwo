@@ -531,6 +531,11 @@ namespace Dewritwo
             }
         }
 
+        private void d_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start("http://i.imgur.com/cc9ZcIO.gif");
+        }
+
         private void forceUpdate_Click(object sender, RoutedEventArgs e)
         {
             validateThread = new Thread(BackgroundThread);

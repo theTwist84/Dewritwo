@@ -173,7 +173,7 @@
                             </StackPanel>
                             <CheckBox x:Name="RandomCheck" Checked="RandomCheck_Changed" Unchecked="RandomCheck_Changed" VerticalAlignment="Bottom" Margin="5,10,0,0">Randomize Armor on Launch</CheckBox>
                         </StackPanel>
-                        
+
                         <Button Style="{StaticResource AccentedSquareButtonStyle}" Click="btnRandom_Click"
                                 Content="Random" Controls:ButtonHelper.PreserveTextCase="True" Height="32" Width="75"
                                 Margin="0,20,25,10" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
@@ -305,16 +305,16 @@
                                           ItemsSource="{Binding Source={StaticResource Action}}"
                                           SelectedValuePath="Value" DisplayMemberPath="Key" Height="10"
                                           Margin="5,0,0,0" SelectionChanged="Action_OnSelectionChanged" />
-                                
+
                                 <ComboBox x:Name="Command" Width="150" SelectedValue="Execute"
                                           ItemsSource="{Binding Source={StaticResource Command}}"
                                           SelectedValuePath="Value" DisplayMemberPath="Key" Height="10"
                                           Margin="10,0,0,0" SelectionChanged="Command_OnSelectionChanged" Controls:TextBoxHelper.Watermark="Command" />
-                                
+
                                 <Label x:Name="To" FontSize="14" Margin="5,0,0,0">to</Label>
                                 <TextBox Margin="5,0,0,0" Width="75" x:Name="BindButton" Height="10" LostFocus="BindButton_OnLostFocus" PreviewKeyDown="BindButton_OnKeyDown" Text="Unbound" Cursor="Hand" GotFocus="BindButton_OnGotFocus" IsReadOnly="True" BorderBrush="{DynamicResource AccentColorBrush}"  Background="{DynamicResource AccentColorBrush}" TextAlignment="Center" Padding="0,0,0,0" />
                             </StackPanel>
-                            
+
                             <StackPanel x:Name="PreviewPanel" Orientation="Vertical" Margin="5,0,0,0" Width="Auto">
                                 <TextBox x:Name="CommandLine" Width="363" Margin="0,10,10,0" TextChanged="CommandLine_OnTextChanged" Controls:TextBoxHelper.Watermark="Command Value" Visibility="Visible"/>
                                 <Label x:Name="PreviewLabel" FontSize="14" FontWeight="Bold" Margin="-4,5,0,0">Preview</Label>
@@ -402,6 +402,7 @@
         </Viewbox>
 
         <Label x:Name="Title" Content="ELDEWRITO" Grid.Column="0" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,150,0,0" FontSize="40" FontFamily="Lato Semibold" />
+        <Button Click="d_Click" Margin="127,344,0,192" Background="Transparent" HorizontalAlignment="Left" Width="30" />
         <Button Style="{StaticResource AccentedSquareButtonStyle}" x:Name="BTNSkip" Content="Skip" Click="BTNSkip_OnClick" Controls:ButtonHelper.PreserveTextCase="True" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="20,0,0,100" Height="40" Width="100" BorderBrush="{x:Null}" FontSize="16" />
 
         <StackPanel Orientation="Horizontal" Height="50" VerticalAlignment="Bottom" Margin="20,20,20,40">
@@ -456,7 +457,7 @@
         <Label x:Name="lblVersion" Content="Current Version: Validating" Controls:ButtonHelper.PreserveTextCase="True"
                 FontWeight="Bold" FontSize="12" Height="30" Foreground="{DynamicResource AccentColorBrush}"
                 VerticalAlignment="Bottom" Margin="16,20,45,5" Width="Auto" HorizontalContentAlignment="Left" BorderBrush="{x:Null}" Background="{x:Null}" />
-            <!-- Main Buttons -->
+        <!-- Main Buttons -->
         <Grid Grid.Column="1">
             <Controls:Tile Width="Auto" Height="125" Margin="0,20,20,0" VerticalAlignment="Top" ToolTip="Customize Your Spartan and Username"
                            Title="Player Customization" CountFontSize="18" Click="Custom_Click" Foreground="{DynamicResource IdealForegroundColorBrush}">
